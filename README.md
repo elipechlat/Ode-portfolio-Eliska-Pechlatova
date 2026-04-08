@@ -1,12 +1,4 @@
 # Projects Portfolio — Eliška Pechlátová
-
-Environmental researcher and developer building AI-powered tools 
-at the intersection of ecology, sustainability, and technology.
-
-MSc student at Czech University of Life Sciences (CZU) Prague, 
-currently research intern at University of Salford's ERIC lab.
-Advisory board member at Oceanry.
-
 ---
 
 ## Projects
