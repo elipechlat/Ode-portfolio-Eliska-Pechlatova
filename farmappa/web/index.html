@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FarMappa – Mapa bio farem a farmářských trhů</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Marker clustering -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f5f3ee;
+      color: #2c2c2c;
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #2d6a2d;
+      color: #fff;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+      z-index: 1000;
+    }
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+    }
+    header p {
+      font-size: .8rem;
+      opacity: .8;
+      margin-top: 1px;
+    }
+    #count-badge {
+      margin-left: auto;
+      background: rgba(255,255,255,.2);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: .8rem;
+      white-space: nowrap;
+    }
+
+    /* ── Filter bar ── */
+    #filters {
+      background: #fff;
+      border-bottom: 1px solid #e0dbd0;
+      padding: 8px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      flex-shrink: 0;
+      z-index: 999;
+    }
+    .filter-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      font-size: .8rem;
+      font-weight: 500;
+      transition: opacity .15s, transform .1s;
+      user-select: none;
+      background: #f0ede6;
+      color: #2c2c2c;
+    }
+    .filter-btn .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .filter-btn .chip-count {
+      font-size: .7rem;
+      opacity: .7;
+    }
+    .filter-btn.active {
+      border-color: currentColor;
+      background: #fff;
+    }
+    .filter-btn:not(.active) {
+      opacity: .5;
+    }
+    .filter-btn:hover { opacity: 1; transform: scale(1.03); }
+
+    #btn-all {
+      background: #2d6a2d;
+      color: #fff;
+      border-color: #2d6a2d;
+    }
+    #btn-all.active { opacity: 1; }
+    #btn-all:not(.active) { opacity: .55; }
+
+    /* ── Map ── */
+    #map {
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── Popup ── */
+    .leaflet-popup-content {
+      min-width: 220px;
+      max-width: 280px;
+    }
+    .popup-name {
+      font-weight: 700;
+      font-size: .95rem;
+      margin-bottom: 5px;
+      line-height: 1.3;
+    }
+    .popup-cats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      margin-bottom: 7px;
+    }
+    .popup-cat {
+      font-size: .68rem;
+      padding: 2px 7px;
+      border-radius: 999px;
+      color: #fff;
+      font-weight: 500;
+    }
+    .popup-field {
+      font-size: .78rem;
+      margin-top: 3px;
+      color: #444;
+      display: flex;
+      gap: 5px;
+    }
+    .popup-field a { color: #2d6a2d; text-decoration: none; }
+    .popup-field a:hover { text-decoration: underline; }
+    .popup-icon { opacity: .6; flex-shrink: 0; }
+    .popup-desc {
+      font-size: .76rem;
+      color: #555;
+      margin-top: 7px;
+      line-height: 1.45;
+      border-top: 1px solid #eee;
+      padding-top: 7px;
+    }
+
+    /* ── No-GPS notice ── */
+    #no-gps-notice {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.65);
+      color: #fff;
+      font-size: .75rem;
+      padding: 6px 14px;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 900;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🌿 FarMappa</h1>
+    <p>Mapa bio farem, včelařů a farmářských trhů v ČR</p>
+  </div>
+  <span id="count-badge">—</span>
+</header>
+
+<div id="filters">
+  <button class="filter-btn active" id="btn-all" data-cat="all">
+    <span>Vše</span>
+  </button>
+</div>
+
+<div id="map"></div>
+<div id="no-gps-notice">⚠ 943 míst bez GPS souřadnic není zobrazeno</div>
+
+<script>
+// ── Category metadata ─────────────────────────────────────────────────────────
+const CATEGORIES = {
+  beekeeper:      { label: 'Včelař / med',          color: '#f59e0b' },
+  dairy:          { label: 'Mléčné výrobky',         color: '#60a5fa' },
+  farmers_market: { label: 'Farmářský trh',          color: '#16a34a' },
+  fruits:         { label: 'Ovoce',                  color: '#f97316' },
+  goat_milk:      { label: 'Kozí mléko',             color: '#a855f7' },
+  organic_eggs:   { label: 'Bio vejce',              color: '#f43f5e' },
+  organic_grains: { label: 'Bio obiloviny',          color: '#ca8a04' },
+  organic_meat:   { label: 'Bio maso',               color: '#dc2626' },
+  potatoes:       { label: 'Brambory',               color: '#92400e' },
+  self_picking:   { label: 'Samosběr',               color: '#84cc16' },
+  sheep_milk:     { label: 'Ovčí mléko',             color: '#8b5cf6' },
+  vegetables:     { label: 'Zelenina',               color: '#15803d' },
+};
+
+// ── Map init ──────────────────────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [49.8, 15.5],   // Czech Republic centre
+  zoom: 8,
+  zoomControl: true,
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 19,
+}).addTo(map);
+
+// ── Marker icon factory ───────────────────────────────────────────────────────
+function makeIcon(color) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="24" height="32">
+    <path d="M12 0C6.48 0 2 4.48 2 10c0 7.5 10 22 10 22S22 17.5 22 10C22 4.48 17.52 0 12 0z"
+          fill="${color}" stroke="#fff" stroke-width="1.5"/>
+    <circle cx="12" cy="10" r="4" fill="#fff" opacity=".9"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [24, 32],
+    iconAnchor: [12, 32],
+    popupAnchor: [0, -34],
+  });
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allFeatures = [];
+let activeFilter = 'all';
+let clusterGroup = null;
+
+// ── Popup builder ─────────────────────────────────────────────────────────────
+function buildPopup(props) {
+  const cats = (props.categories || []);
+  const catChips = cats.map(slug => {
+    const meta = CATEGORIES[slug];
+    if (!meta) return '';
+    return `<span class="popup-cat" style="background:${meta.color}">${meta.label}</span>`;
+  }).join('');
+
+  const addressLine = props.address
+    ? `<div class="popup-field"><span class="popup-icon">📍</span><span>${props.address}</span></div>`
+    : '';
+
+  const phoneLine = props.phone
+    ? `<div class="popup-field"><span class="popup-icon">📞</span><a href="tel:${props.phone}">${props.phone}</a></div>`
+    : '';
+
+  const websiteLine = props.website
+    ? `<div class="popup-field"><span class="popup-icon">🌐</span><a href="${props.website}" target="_blank" rel="noopener">Web</a></div>`
+    : '';
+
+  const fbLine = props.facebook
+    ? `<div class="popup-field"><span class="popup-icon">📘</span><a href="${props.facebook}" target="_blank" rel="noopener">Facebook</a></div>`
+    : '';
+
+  const emailLine = props.email
+    ? `<div class="popup-field"><span class="popup-icon">✉</span><a href="mailto:${props.email}">${props.email}</a></div>`
+    : '';
+
+  const desc = props.description
+    ? `<div class="popup-desc">${props.description.substring(0, 220)}${props.description.length > 220 ? '…' : ''}</div>`
+    : '';
+
+  return `
+    <div class="popup-name">${props.name}</div>
+    <div class="popup-cats">${catChips}</div>
+    ${addressLine}${phoneLine}${websiteLine}${fbLine}${emailLine}
+    ${desc}
+  `;
+}
+
+// ── Render markers ────────────────────────────────────────────────────────────
+function renderMarkers(filter) {
+  if (clusterGroup) map.removeLayer(clusterGroup);
+
+  clusterGroup = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+  });
+
+  const filtered = filter === 'all'
+    ? allFeatures
+    : allFeatures.filter(f => (f.properties.categories || []).includes(filter));
+
+  for (const feature of filtered) {
+    const coords = feature.geometry.coordinates;   // [lon, lat]
+    const props  = feature.properties;
+    const cats   = props.categories || [];
+
+    // Primary category determines marker colour
+    // Prefer the active filter's colour if it applies; otherwise first category
+    const primaryCat = (filter !== 'all' && cats.includes(filter))
+      ? filter
+      : cats[0];
+    const color = (CATEGORIES[primaryCat] || {}).color || '#6b7280';
+
+    const marker = L.marker([coords[1], coords[0]], { icon: makeIcon(color) });
+    marker.bindPopup(buildPopup(props), { maxWidth: 300 });
+    clusterGroup.addLayer(marker);
+  }
+
+  map.addLayer(clusterGroup);
+
+  // Update count badge
+  document.getElementById('count-badge').textContent =
+    `${filtered.length} míst`;
+}
+
+// ── Build filter buttons ──────────────────────────────────────────────────────
+function buildFilters(features) {
+  // Count per category
+  const counts = {};
+  for (const f of features) {
+    for (const slug of (f.properties.categories || [])) {
+      counts[slug] = (counts[slug] || 0) + 1;
+    }
+  }
+
+  const bar = document.getElementById('filters');
+  for (const [slug, meta] of Object.entries(CATEGORIES)) {
+    const n = counts[slug] || 0;
+    if (!n) continue;
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn active';
+    btn.dataset.cat = slug;
+    btn.style.color = meta.color;
+    btn.innerHTML = `
+      <span class="dot" style="background:${meta.color}"></span>
+      <span>${meta.label}</span>
+      <span class="chip-count">${n}</span>
+    `;
+    btn.addEventListener('click', () => setFilter(slug));
+    bar.appendChild(btn);
+  }
+}
+
+function setFilter(cat) {
+  activeFilter = cat;
+
+  // Sync button states
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    const isAll = btn.id === 'btn-all';
+    const isActive = isAll ? cat === 'all' : btn.dataset.cat === cat;
+    btn.classList.toggle('active', isActive);
+  });
+
+  renderMarkers(cat);
+}
+
+// Wire up "Vše" button
+document.getElementById('btn-all').addEventListener('click', () => setFilter('all'));
+
+// ── Load GeoJSON ──────────────────────────────────────────────────────────────
+fetch('data.geojson')
+  .then(r => r.json())
+  .then(geojson => {
+    allFeatures = geojson.features;
+    buildFilters(allFeatures);
+    renderMarkers('all');
+  })
+  .catch(err => {
+    console.error('Failed to load data.geojson:', err);
+    alert('Nelze načíst data. Spusť export_geojson.py a otevři stránku přes HTTP server.');
+  });
+</script>
+
+</body>
+</html>

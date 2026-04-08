@@ -1,0 +1,15 @@
+# Credentials — never commit
+.env
+
+# Database (generated — do not commit the live DB file)
+database/farmappa.db
+
+# Scraper run logs
+agents/import_log.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
