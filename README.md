@@ -34,7 +34,7 @@ operational, web prototype running, mobile app planned
 **Two-agent Claude-powered app for qualitative ESG analysis 
 of microbusiness interviews**
 
-A dual-agent system built directly in Claude AI that automates 
+A dual-agent system built directly in Claude Code that automates 
 the qualitative coding and analysis of ESG interview transcripts 
 from microbusinesses — turning raw interview data into structured, 
 analysable ESG reporting outputs.
@@ -52,8 +52,7 @@ with small businesses on ESG disclosure and sustainability
 reporting, where manual coding is time-intensive and 
 inconsistent across analysts.
 
-**Tech stack:** Claude AI, prompt engineering, multi-agent 
-architecture
+**Tech stack:** Claude Code, Python
 
 **Status:** Operational
 
