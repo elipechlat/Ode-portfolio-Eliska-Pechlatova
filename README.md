@@ -23,7 +23,7 @@ across the Czech Republic. Built entirely with Claude Code.
   be added in minutes
 
 **Tech stack:** Python, SQLite, Leaflet.js, BeautifulSoup, 
-Nominatim geocoding API, Claude Code
+Nominatim geocoding API
 
 **Status:** Active development — data collection agents 
 operational, web prototype running, mobile app planned
@@ -52,7 +52,7 @@ with small businesses on ESG disclosure and sustainability
 reporting, where manual coding is time-intensive and 
 inconsistent across analysts.
 
-**Tech stack:** Claude Code, Python
+**Tech stack:** Python
 
 **Status:** Operational
 
