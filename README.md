@@ -1,5 +1,4 @@
 # Projects Portfolio — Eliška Pechlátová
----
 
 ## Projects
 
