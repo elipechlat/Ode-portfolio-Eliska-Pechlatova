@@ -54,5 +54,5 @@ inconsistent across analysts.
 
 **Tech stack:** Python
 
-**Status:** Operational
+**Status:** Agent 1 operational — Agent 2 in development
 
